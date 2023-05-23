@@ -1,19 +1,21 @@
-const { connect } = require("getstream");
-const { bcrypt } = require("bcrypt");
-const streamChat = require("stream-chat");
-const crypto = require("crypto");
+const { connect } = require('getstream');
+const bcrypt = require('bcrypt');
+const StreamChat = require('stream-chat').StreamChat;
+const crypto = require('crypto');
+
+require('dotenv').config();
 
 const api_key = process.env.STREAM_API_KEY;
 const api_secret = process.env.STREAM_API_SECRET;
-const api_id = process.env.STREAM_API_ID;
+const app_id = process.env.STREAM_APP_ID;
 
 const signup = async (req, res) => {
     try {
-        const { fullName, username, password, phoneNumber, avatarURL } = req.body;
+        const { fullName, username, password, phoneNumber } = req.body;
 
-        const userId = crypto.randomBytes(16).toString("hex");
+        const userId = crypto.randomBytes(16).toString('hex');
 
-        const serverClient = connect(api_key, api_secret, api_id);
+        const serverClient = connect(api_key, api_secret, app_id);
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -22,9 +24,8 @@ const signup = async (req, res) => {
         res.status(200).json({ token, fullName, username, userId, hashedPassword, phoneNumber });
     } catch (error) {
         console.log(error);
-        res.status(500).send({
-            message: error
-        })
+
+        res.status(500).json({ message: error });
     }
 };
 
@@ -32,12 +33,12 @@ const login = async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        const serverClient = connect(api_key, api_secret, api_id);
-        const client = streamChat.getInstance(api_key, api_secret);
+        const serverClient = connect(api_key, api_secret, app_id);
+        const client = StreamChat.getInstance(api_key, api_secret);
 
         const { users } = await client.queryUsers({ name: username });
 
-        if (!users.length) return res.status(400).json({ message: "User not found" });
+        if (!users.length) return res.status(400).json({ message: 'User not found' });
 
         const success = await bcrypt.compare(password, users[0].hashedPassword);
 
@@ -46,17 +47,14 @@ const login = async (req, res) => {
         if (success) {
             res.status(200).json({ token, fullName: users[0].fullName, username, userId: users[0].id });
         } else {
-            res.status(500).json({ message: "Incorrect password" });
+            res.status(500).json({ message: 'Incorrect password' });
         }
-
     } catch (error) {
+        ads
         console.log(error);
-        res.status(500).send({
-            message: error
-        })
+
+        res.status(500).json({ message: error });
     }
 };
 
-
 module.exports = { signup, login }
-
